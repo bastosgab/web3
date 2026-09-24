@@ -1,8 +1,7 @@
 const { DataTypes, Model } = require('sequelize')
-const bcrypt = require('bcrypt')
 const { sequelize } = require('../instances/mysql')
 
-class User extends Model {}
+class User extends Model { }
 
 User.init(
     {
@@ -11,34 +10,37 @@ User.init(
             primaryKey: true,
             autoIncrement: true,
         },
-
         name: {
             type: DataTypes.STRING,
             allowNull: false,
         },
-
         email: {
             type: DataTypes.STRING,
             allowNull: false,
             unique: true,
         },
-
         pass: {
             type: DataTypes.STRING,
             allowNull: false,
         },
-
         pic: {
             type: DataTypes.TEXT('long'),
             allowNull: true,
         },
     },
-
     {
         sequelize,
         modelName: 'User',
         tableName: 'users',
-        timestamps: true
+        timestamps: true,
+        defaultScope: {
+            attributes: { exclude: ['pass'] }
+        },
+        scopes: {
+            withPassword: {
+                attributes: { include: ['pass'] }
+            }
+        }
     }
 )
 

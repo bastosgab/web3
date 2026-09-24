@@ -1,4 +1,6 @@
-const User = require('../models/User')  
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
+const User = require('../models/User')
 
 const withoutPassword = (user) => {
     const data = user.toJSON()
@@ -41,4 +43,26 @@ const deleteUser = async (id) => {
     return withoutPassword(user)
 }
 
-module.exports = { getAllUsers, getUserById, createUser, updateUser, deleteUser }
+const login = async (email, password) => {
+    const user = await User.scope('withPassword').findOne({
+        where: { email }
+    })
+
+    if (!user) return null
+
+    const validPassword = await bcrypt.compare(password, user.pass)
+    if (!validPassword) return null
+
+    const token = jwt.sign(
+        { id: user.id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    )
+
+    return {
+        token,
+        user: withoutPassword(user)
+    }
+}
+
+module.exports = { getAllUsers, getUserById, createUser, updateUser, deleteUser, login }

@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt')
 const userService = require('../services/userService')
 
 const searchUser = async (req, res) => {
@@ -22,10 +23,30 @@ const getUser = async (req, res) => {
     }
 }
 
+const login = async (req, res) => {
+    try {
+        const user = await userService.login(req.body.email, req.body.pass)
+
+        if (!user) {
+            return res.status(401).json({ error: 'Credenciais inválidas' })
+        }
+
+        res.status(200).json({ data: user })
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao fazer login' })
+    }
+}
+
 const createUser = async (req, res) => {
     try {
-        const user = await userService.createUser(req.body)
+        const data = {
+            ...req.body,
+            pass: await bcrypt.hash(req.body.pass, 10)
+        }
+        const user = await userService.createUser(data)
+
         res.status(201).json({ data: user })
+
     } catch (err) {
         if (err.name === 'SequelizeUniqueConstraintError') {
             return res.status(409).json({ error: 'E-mail já cadastrado' })
@@ -36,7 +57,10 @@ const createUser = async (req, res) => {
 
 const updateUser = async (req, res) => {
     try {
-        const user = await userService.updateUser(req.params.id, req.body)
+        const data = { ...req.body }
+        if (data.pass) data.pass = await bcrypt.hash(data.pass, 10)
+
+        const user = await userService.updateUser(req.params.id, data)
         if (!user) return res.status(404).json({ error: 'Usuário não encontrado' })
 
         res.status(200).json({ data: user })
@@ -59,4 +83,4 @@ const deleteUser = async (req, res) => {
     }
 }
 
-module.exports = { searchUser, getUser, createUser, updateUser, deleteUser }
+module.exports = { searchUser, getUser, login, createUser, updateUser, deleteUser }
